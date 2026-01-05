@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Invoice | Aditya Chitoshiya</title>
+
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3C/svg%3E">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- FIREBASE CONNECTION -->
+    <script src="js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = window.__app_id || 'default-app-id';
+
+        window.saveInvoiceToCloud = async function () {
+            if (!auth.currentUser) {
+                alert("Connecting to secure server... please wait.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-save');
+            const mobileBtn = document.getElementById('btn-save-mobile');
+
+            // Show Loading State
+            if (btn) btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Saving...`;
+            if (mobileBtn) mobileBtn.innerHTML = `<i data-lucide="loader" class="w-5 h-5 animate-spin mb-1"></i> Saving`;
+            lucide.createIcons();
+
+            const invoiceData = {
+                client: {
+                    name: document.getElementById('client-name').value,
+                    attn: document.getElementById('client-attn').value,
+                    address: document.getElementById('client-address').value,
+                    email: document.getElementById('client-email').value
+                },
+                meta: {
+                    invoiceNo: document.getElementById('invoice-no').value,
+                    date: document.getElementById('invoice-date').value,
+                    total: document.getElementById('total-amount').innerText
+                },
+                items: window.itemsData,
+                timestamp: serverTimestamp(),
+                userId: auth.currentUser.uid
+            };
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'saved_invoices'), invoiceData);
+                alert("Invoice Saved Securely to Cloud!");
+            } catch (error) {
+                console.error("Save Error:", error);
+                alert("Failed to save invoice.");
+            } finally {
+                if (btn) btn.innerHTML = `<i data-lucide="cloud" class="w-4 h-4"></i> Save`;
+                if (mobileBtn) mobileBtn.innerHTML = `<i data-lucide="cloud" class="w-5 h-5 mb-1"></i> Save`;
+                lucide.createIcons();
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Invoice System Connected:", user.uid);
+            } else {
+                signInAnonymously(auth).catch((error) => console.error("Auth Error:", error));
+            }
+        });
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary: #3b82f6;
+            --bg-dark: #050505;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #e2e8f0;
+            padding-bottom: 120px;
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        .brand-font,
+        .invoice-header {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .data-font {
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .glass-panel {
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        .transparent-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid transparent;
+            color: inherit;
+            width: 100%;
+            padding: 2px 4px;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            cursor: default;
+        }
+
+        body.is-editing .transparent-input {
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+            cursor: text;
+        }
+
+        body.is-editing .transparent-input:focus {
+            outline: none;
+            border-bottom: 1px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        #edit-indicator {
+            display: none;
+        }
+
+        body.is-editing #edit-indicator {
+            display: flex;
+        }
+
+        .mobile-bar {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-actions {
+                display: none !important;
+            }
+
+            .mobile-bar {
+                display: flex;
+            }
+
+            .nav-back {
+                top: 10px;
+                left: 10px;
+            }
+
+            th,
+            td {
+                white-space: nowrap;
+            }
+        }
+
+        @media print,
+        .pdf-mode {
+            body {
+                background-color: white !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                font-family: sans-serif !important;
+                padding-bottom: 0 !important;
+            }
+
+            .bg-grid,
+            .no-print,
+            #edit-indicator,
+            .mobile-bar,
+            .nav-back {
+                display: none !important;
+            }
+
+            .glass-panel {
+                background: white !important;
+                border: none !important;
+                box-shadow: none !important;
+                color: black !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+
+            h1,
+            h2,
+            h3,
+            h4,
+            p,
+            span,
+            div,
+            input,
+            textarea,
+            td,
+            th {
+                color: #000000 !important;
+                text-shadow: none !important;
+                -webkit-text-fill-color: #000000 !important;
+                font-family: sans-serif !important;
+            }
+
+            .text-gray-400,
+            .text-gray-500,
+            .text-blue-500,
+            .text-yellow-500 {
+                color: #000000 !important;
+            }
+
+            .border-b,
+            .border-t,
+            .border {
+                border-color: #000000 !important;
+                border-width: 1px !important;
+                border-style: solid !important;
+            }
+
+            .border-white\/10,
+            .border-white\/20,
+            .border-blue-500\/30,
+            .border-yellow-500\/30 {
+                border-color: #000000 !important;
+            }
+
+            .invoice-header {
+                color: #000 !important;
+                opacity: 1 !important;
+            }
+
+            .bg-yellow-500\/10,
+            .bg-white\/5,
+            .bg-blue-500\/20 {
+                background-color: transparent !important;
+                border: 1px solid #000 !important;
+            }
+
+            .bg-gradient-to-r {
+                background: black !important;
+                height: 4px !important;
+            }
+
+            .animate-pulse {
+                animation: none !important;
+                background-color: #000 !important;
+                opacity: 1 !important;
+            }
+
+            .transparent-input {
+                border-bottom: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            th {
+                border-bottom: 2px solid black !important;
+                color: black !important;
+                text-transform: uppercase;
+            }
+
+            td {
+                border-bottom: 1px solid #ccc !important;
+                color: black !important;
+                padding: 8px 0 !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen py-10 px-4 md:px-8" id="invoice-body">
+
+    <div class="bg-grid"></div>
+
+    <!-- Navigation (Back Button) -->
+    <nav class="fixed top-4 left-4 z-50 no-print nav-back">
+        <a href="index.html"
+            class="flex items-center gap-2 bg-black/50 backdrop-blur border border-white/10 px-3 py-2 rounded-full hover:bg-white/10 transition-colors text-xs md:text-sm font-mono text-white">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> <span class="hidden md:inline">Back to Base</span><span
+                class="md:hidden">Back</span>
+        </a>
+    </nav>
+
+    <!-- Desktop Action Buttons -->
+    <div class="fixed top-6 right-6 z-50 gap-3 no-print desktop-actions hidden md:flex">
+        <button onclick="openPasswordModal()" id="btn-edit"
+            class="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-500 text-white px-5 py-2 rounded-full text-sm font-bold transition-all shadow-lg shadow-yellow-900/20">
+            <i data-lucide="lock" class="w-4 h-4"></i> <span id="btn-edit-label">Unlock Editing</span>
+        </button>
+        <!-- Save Button (Hidden by default) -->
+        <button onclick="saveInvoiceToCloud()" id="btn-save"
+            class="hidden flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-full text-sm font-bold transition-all shadow-lg shadow-purple-900/20">
+            <i data-lucide="cloud" class="w-4 h-4"></i> Save
+        </button>
+        <button onclick="window.print()"
+            class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-5 py-2 rounded-full text-sm font-bold transition-all border border-white/10">
+            <i data-lucide="printer" class="w-4 h-4"></i> Print
+        </button>
+        <button onclick="downloadPDF()"
+            class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-full text-sm font-bold transition-all shadow-lg shadow-blue-900/20">
+            <i data-lucide="file-down" class="w-4 h-4"></i> Download PDF
+        </button>
+        <button onclick="downloadCSV()"
+            class="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-full text-sm font-bold transition-all shadow-lg shadow-green-900/20">
+            <i data-lucide="table" class="w-4 h-4"></i> CSV
+        </button>
+    </div>
+
+    <!-- Mobile Bottom Action Bar -->
+    <div
+        class="mobile-bar fixed bottom-0 left-0 w-full bg-black/95 backdrop-blur-xl border-t border-white/10 p-3 z-50 justify-between items-center no-print gap-2">
+        <button onclick="openPasswordModal()" id="btn-edit-mobile"
+            class="flex-1 flex flex-col items-center justify-center p-2 rounded-lg bg-yellow-600/10 text-yellow-500 border border-yellow-500/20 text-[10px] font-bold">
+            <i data-lucide="lock" class="w-5 h-5 mb-1"></i> <span class="uppercase"
+                id="btn-edit-label-mobile">Unlock</span>
+        </button>
+        <!-- Save Button (Hidden by default) -->
+        <button onclick="saveInvoiceToCloud()" id="btn-save-mobile"
+            class="hidden flex-1 flex flex-col items-center justify-center p-2 rounded-lg bg-purple-600/10 text-purple-400 border border-purple-500/20 text-[10px] font-bold">
+            <i data-lucide="cloud" class="w-5 h-5 mb-1"></i> <span class="uppercase">Save</span>
+        </button>
+        <button onclick="downloadPDF()"
+            class="flex-1 flex flex-col items-center justify-center p-2 rounded-lg bg-blue-600/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold">
+            <i data-lucide="file-down" class="w-5 h-5 mb-1"></i> <span class="uppercase">PDF</span>
+        </button>
+        <button onclick="downloadCSV()"
+            class="flex-1 flex flex-col items-center justify-center p-2 rounded-lg bg-green-600/10 text-green-400 border border-green-500/20 text-[10px] font-bold">
+            <i data-lucide="table" class="w-5 h-5 mb-1"></i> <span class="uppercase">CSV</span>
+        </button>
+    </div>
+
+    <!-- Editing Indicator -->
+    <div id="edit-indicator"
+        class="fixed top-20 right-4 md:bottom-6 md:right-6 md:top-auto z-50 bg-yellow-500 text-black px-3 py-1.5 md:px-4 md:py-2 rounded-full font-bold text-[10px] md:text-xs uppercase tracking-widest shadow-lg animate-pulse flex items-center gap-2">
+        <i data-lucide="unlock" class="w-3 h-3"></i> Editing Active
+    </div>
+
+    <!-- PASSWORD POPUP MODAL -->
+    <div id="password-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4"
+        style="background-color: rgba(0, 0, 0, 0.9);">
+        <div
+            class="relative bg-gray-900 border border-yellow-500/50 p-8 rounded-2xl w-full max-w-sm text-center shadow-[0_0_50px_rgba(234,179,8,0.2)]">
+            <div
+                class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-yellow-500/30">
+                <i data-lucide="shield-alert" class="w-8 h-8 text-yellow-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2 brand-font tracking-wider">SECURITY CLEARANCE</h3>
+            <p class="text-gray-400 text-xs mb-6 font-mono">Restricted access. Enter passcode to proceed.</p>
+            <input type="password" id="modal-password-input"
+                class="w-full bg-black border border-white/20 rounded-lg px-4 py-3 text-white text-center tracking-[0.5em] font-mono focus:border-yellow-500 focus:outline-none mb-4"
+                placeholder="••••••••">
+            <div class="flex gap-3">
+                <button onclick="closePasswordModal()"
+                    class="flex-1 py-3 border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 font-bold text-xs transition-colors">CANCEL</button>
+                <button onclick="verifyPassword()"
+                    class="flex-1 py-3 bg-yellow-600 hover:bg-yellow-500 text-black rounded-lg font-bold text-xs transition-all">AUTHENTICATE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INVOICE CONTAINER -->
+    <div id="invoice-content"
+        class="max-w-4xl mx-auto glass-panel rounded-xl overflow-hidden animate-fade-in-up bg-white/0 mb-4 w-full">
+
+        <!-- Header Strip -->
+        <div class="bg-gradient-to-r from-blue-900/40 to-purple-900/40 p-1 h-2"></div>
+
+        <div class="p-6 md:p-12">
+
+            <!-- Top Row -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-12 gap-4">
+                <div class="w-full md:w-auto">
+                    <h1
+                        class="brand-font text-2xl md:text-4xl font-black text-white tracking-wider leading-tight uppercase">
+                        ADITYA <span class="text-blue-500">CHITOSHIYA</span></h1>
+                    <p class="text-xs md:text-sm text-gray-400 font-mono uppercase tracking-widest mt-1">Motion Graphic
+                        Designer</p>
+                </div>
+                <div
+                    class="text-left md:text-right w-full md:w-auto flex flex-row md:flex-col justify-between items-center md:items-end">
+                    <h2
+                        class="invoice-header text-3xl md:text-4xl font-black text-white/10 tracking-widest select-none">
+                        INVOICE</h2>
+                    <div
+                        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 md:mt-2">
+                        <div class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
+                        <input type="text" value="PAYMENT PENDING"
+                            class="transparent-input text-[10px] font-bold text-yellow-500 uppercase tracking-wide w-28 md:w-32 text-right"
+                            readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Grid -->
+            <div
+                class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mb-8 md:mb-12 border-b border-white/10 pb-8 md:pb-12">
+                <!-- Billed To -->
+                <div>
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Billed To</h3>
+                    <div class="text-gray-300 space-y-1 data-font text-base md:text-lg">
+                        <input type="text" id="client-name"
+                            class="transparent-input font-bold text-white text-lg md:text-xl w-full break-words"
+                            placeholder="Client Name" value="BIEDX PTE. LTD." readonly>
+                        <input type="text" id="client-attn" class="transparent-input w-full break-words"
+                            placeholder="Attention To" value="60 Paya Lebar Rd, #07-54" readonly>
+                        <input type="text" id="client-address" class="transparent-input w-full break-words"
+                            placeholder="Address" value="Paya Lebar Square, Singapore 409051" readonly>
+                        <input type="email" id="client-email" class="transparent-input w-full break-words"
+                            placeholder="Email" value="" readonly>
+                    </div>
+                </div>
+                <!-- Details -->
+                <div class="md:text-right flex flex-col gap-2">
+                    <div class="flex justify-between md:justify-end gap-4 items-center">
+                        <span class="text-gray-500 text-xs uppercase font-bold">Invoice No.</span>
+                        <input type="text" id="invoice-no" class="transparent-input text-right font-mono w-32"
+                            value="#VL-2025-001" readonly>
+                    </div>
+                    <div class="flex justify-between md:justify-end gap-4 items-center">
+                        <span class="text-gray-500 text-xs uppercase font-bold">Date Issued</span>
+                        <input type="date" id="invoice-date"
+                            class="transparent-input text-right font-mono w-32 text-gray-300" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line Items Table -->
+            <div class="mb-8 overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[600px] md:min-w-0">
+                    <thead>
+                        <tr class="border-b border-white/20">
+                            <th class="py-4 text-xs font-bold text-gray-500 uppercase tracking-widest w-[45%]">
+                                Description</th>
+                            <th
+                                class="py-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-right w-[15%]">
+                                Qty</th>
+                            <th
+                                class="py-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-right w-[20%]">
+                                Rate</th>
+                            <th
+                                class="py-4 text-xs font-bold text-gray-500 uppercase tracking-widest text-right w-[20%]">
+                                Amount</th>
+                            <th class="py-4 w-[5%] no-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoice-items" class="text-gray-300 font-mono text-xs md:text-sm"></tbody>
+                </table>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-start mb-12 gap-8">
+                <button onclick="addItem()" id="add-item-btn"
+                    class="no-print text-xs text-blue-400 hover:text-white transition-colors flex items-center gap-2 border border-dashed border-white/20 px-4 py-2 rounded hover:bg-white/5 w-full md:w-auto justify-center"
+                    disabled style="opacity: 0.5; cursor: not-allowed;">
+                    <i data-lucide="plus" class="w-3 h-3"></i> Add Line Item
+                </button>
+                <!-- Total Calculation -->
+                <div class="w-full md:w-1/3 space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Subtotal</span>
+                        <span class="font-mono text-white" id="subtotal">₹0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm items-center">
+                        <span class="text-gray-500">Tax %</span>
+                        <input type="number" id="tax-rate" value="0" class="transparent-input w-12 text-right font-mono"
+                            onchange="calculateTotal()" readonly>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Tax Amount</span>
+                        <span class="font-mono text-white" id="tax-amount">₹0.00</span>
+                    </div>
+                    <div class="h-px bg-white/20 my-4 border-b border-white/20"></div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-white font-bold uppercase tracking-widest text-sm">Total Due</span>
+                        <span class="brand-font text-2xl md:text-3xl font-black text-blue-400"
+                            id="total-amount">₹0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Note -->
+            <div class="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-start gap-8">
+                <!-- Payment Details -->
+                <div class="w-full md:w-1/2 bg-white/5 p-4 rounded-lg border border-white/10">
+                    <h4 class="text-xs font-bold text-blue-400 uppercase mb-3 flex items-center gap-2">
+                        <i data-lucide="credit-card" class="w-3 h-3"></i> Bank Details
+                    </h4>
+                    <div class="grid grid-cols-3 gap-y-2 text-xs font-mono text-gray-300 break-words">
+                        <span class="text-gray-500">Account Holder:</span>
+                        <span class="col-span-2 font-bold text-white uppercase break-words">ADITYA CHITOSHIYA</span>
+                        <span class="text-gray-500">Account Number:</span>
+                        <span class="col-span-2 text-white tracking-wider break-all">50100578263576</span>
+                        <span class="text-gray-500">IFSC Code:</span>
+                        <span class="col-span-2 text-white">HDFC0002838</span>
+                        <span class="text-gray-500">Bank & Branch:</span>
+                        <span class="col-span-2 text-white">HDFC BANK, BAPU NAGAR</span>
+                        <span class="text-gray-500">Account Type:</span>
+                        <span class="col-span-2 text-white">SAVING</span>
+                        <span class="text-gray-500">UPI ID:</span>
+                        <span class="col-span-2 text-white break-all">9782082810@pthdfc</span>
+                    </div>
+                </div>
+                <!-- Signature -->
+                <div class="w-full md:w-1/2 text-left md:text-right flex flex-col justify-between h-full">
+                    <div class="mt-auto pt-10">
+                        <p class="text-xs text-gray-500">Authorized Signature</p>
+                        <p class="text-sm text-white font-bold mt-4 brand-font tracking-widest uppercase">ADITYA
+                            CHITOSHIYA</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom Strip -->
+        <div class="bg-white/5 p-2 text-center text-[10px] text-gray-600 font-mono">
+            SECURE TRANSACTION ID: <span class="text-gray-400">#TRX-8892-ALPHA</span>
+        </div>
+    </div>
+
+    <script>
+        let isEditing = false;
+        window.itemsData = [
+            { id: 1, desc: 'Illustration Work', qty: 2, rate: 600 },
+            { id: 2, desc: 'Reel Work', qty: 5, rate: 750 },
+            { id: 3, desc: 'Poster Work', qty: 1, rate: 500 },
+            { id: 4, desc: 'Highlight Video (Final – 3.5K)', qty: 1, rate: 3500 },
+            { id: 5, desc: 'Logo Animation Work', qty: 1, rate: 600 },
+            { id: 6, desc: 'Standee Video', qty: 1, rate: 900 },
+            { id: 7, desc: 'Standee + Banner Design (merged)', qty: 1, rate: 900 },
+            { id: 8, desc: 'Branding Collaterals (Name Cards, Standee, Certificates)', qty: 1, rate: 2000 },
+            { id: 9, desc: 'Trophy Layout & Mockup Design', qty: 1, rate: 800 },
+            { id: 10, desc: 'Thumbnail Designs', qty: 4, rate: 600 },
+            { id: 11, desc: 'BIEDX Bag Customize and CDR Design', qty: 1, rate: 500 }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('invoice-date').valueAsDate = new Date();
+            renderItems();
+            lucide.createIcons();
+
+            const passInput = document.getElementById('modal-password-input');
+            if (passInput) {
+                passInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyPassword(); });
+            }
+        });
+
+        function openPasswordModal() {
+            if (isEditing) { isEditing = false; updateEditState(); return; }
+            document.getElementById('password-modal').classList.remove('hidden');
+            const input = document.getElementById('modal-password-input');
+            input.value = '';
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closePasswordModal() { document.getElementById('password-modal').classList.add('hidden'); }
+
+        function verifyPassword() {
+            const pass = document.getElementById('modal-password-input').value;
+            if (pass === "12aditya") {
+                isEditing = true;
+                updateEditState();
+                closePasswordModal();
+            } else {
+                alert("ACCESS DENIED: Incorrect Password.");
+            }
+        }
+
+        function updateEditState() {
+            const body = document.body;
+            const btnLabel = document.getElementById('btn-edit-label');
+            const mobileBtnLabel = document.getElementById('btn-edit-label-mobile');
+            const addBtn = document.getElementById('add-item-btn');
+            const inputs = document.querySelectorAll('.transparent-input');
+
+            // Toggle Save Buttons
+            const saveBtn = document.getElementById('btn-save');
+            const saveBtnMobile = document.getElementById('btn-save-mobile');
+
+            if (isEditing) {
+                body.classList.add('is-editing');
+                if (btnLabel) btnLabel.innerText = "Lock Editing";
+                if (mobileBtnLabel) mobileBtnLabel.innerText = "Lock";
+                addBtn.disabled = false; addBtn.style.opacity = "1"; addBtn.style.cursor = "pointer";
+                inputs.forEach(input => input.removeAttribute('readonly'));
+
+                // Show Save
+                if (saveBtn) saveBtn.classList.remove('hidden');
+                if (saveBtnMobile) saveBtnMobile.classList.remove('hidden');
+            } else {
+                body.classList.remove('is-editing');
+                if (btnLabel) btnLabel.innerText = "Unlock Editing";
+                if (mobileBtnLabel) mobileBtnLabel.innerText = "Unlock";
+                addBtn.disabled = true; addBtn.style.opacity = "0.5"; addBtn.style.cursor = "not-allowed";
+                inputs.forEach(input => input.setAttribute('readonly', true));
+
+                // Hide Save
+                if (saveBtn) saveBtn.classList.add('hidden');
+                if (saveBtnMobile) saveBtnMobile.classList.add('hidden');
+            }
+            renderItems();
+            lucide.createIcons();
+        }
+
+        function renderItems() {
+            const tbody = document.getElementById('invoice-items');
+            tbody.innerHTML = '';
+            window.itemsData.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-white/5 hover:bg-white/5 transition-colors group';
+                const readOnlyAttr = isEditing ? '' : 'readonly';
+                tr.innerHTML = `
+                    <td class="py-3 pr-4 align-top"><input type="text" class="transparent-input font-bold text-white w-full break-words" value="${item.desc}" onchange="updateItem(${item.id}, 'desc', this.value)" ${readOnlyAttr}></td>
+                    <td class="py-3 text-right align-top"><input type="number" class="transparent-input text-right" value="${item.qty}" onchange="updateItem(${item.id}, 'qty', this.value)" ${readOnlyAttr}></td>
+                    <td class="py-3 text-right align-top"><input type="number" class="transparent-input text-right" value="${item.rate}" onchange="updateItem(${item.id}, 'rate', this.value)" ${readOnlyAttr}></td>
+                    <td class="py-3 text-right font-bold text-white align-top">₹${(item.qty * item.rate).toLocaleString()}</td>
+                    <td class="py-3 text-center no-print align-top">${isEditing ? `<button onclick="deleteItem(${item.id})" class="text-gray-500 hover:text-red-500 opacity-50 hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            calculateTotal();
+            lucide.createIcons();
+        }
+
+        function addItem() {
+            if (!isEditing) return;
+            const newId = window.itemsData.length > 0 ? Math.max(...window.itemsData.map(i => i.id)) + 1 : 1;
+            window.itemsData.push({ id: newId, desc: 'New Item', qty: 1, rate: 0 });
+            renderItems();
+        }
+
+        function deleteItem(id) {
+            if (!isEditing) return;
+            window.itemsData = window.itemsData.filter(i => i.id !== id);
+            renderItems();
+        }
+
+        function updateItem(id, field, value) {
+            const item = window.itemsData.find(i => i.id === id);
+            if (item) {
+                if (field === 'qty' || field === 'rate') { item[field] = parseFloat(value) || 0; } else { item[field] = value; }
+                renderItems();
+            }
+        }
+
+        function calculateTotal() {
+            const subtotal = window.itemsData.reduce((sum, item) => sum + (item.qty * item.rate), 0);
+            const taxRate = parseFloat(document.getElementById('tax-rate').value) || 0;
+            const taxAmount = subtotal * (taxRate / 100);
+            const total = subtotal + taxAmount;
+            document.getElementById('subtotal').innerText = `₹${subtotal.toLocaleString()}`;
+            document.getElementById('tax-amount').innerText = `₹${taxAmount.toLocaleString()}`;
+            document.getElementById('total-amount').innerText = `₹${total.toLocaleString()}`;
+        }
+
+        function downloadCSV() {
+            const clientName = document.getElementById('client-name').value;
+            const invoiceNo = document.getElementById('invoice-no').value;
+            let csv = `Invoice From,Aditya Chitoshiya\nBilled To,${clientName}\nInvoice No,${invoiceNo}\nDate,${document.getElementById('invoice-date').value}\n\nDescription,Quantity,Rate,Amount\n`;
+            window.itemsData.forEach(item => { csv += `"${item.desc}",${item.qty},${item.rate},${item.qty * item.rate}\n`; });
+            csv += `\nSubtotal,,,"${document.getElementById('subtotal').innerText}"\nTax,,,"${document.getElementById('tax-amount').innerText}"\nTotal,,,"${document.getElementById('total-amount').innerText}"\n\nBank Details\nAccount Holder,ADITYA CHITOSHIYA\nAccount No,50100578263576\nIFSC,HDFC0002838\nBank,HDFC BANK BAPU NAGAR\nUPI,9782082810@pthdfc\n`;
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            link.download = `Invoice_${clientName}.csv`;
+            link.click();
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('invoice-content');
+            element.classList.add('pdf-mode');
+            document.body.classList.add('pdf-mode');
+            const clientName = document.getElementById('client-name').value || 'Client';
+            const opt = { margin: [0.2, 0.2, 0.2, 0.2], filename: `Invoice_${clientName.replace(/\s+/g, '_')}.pdf`, image: { type: 'jpeg', quality: 1 }, html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.classList.remove('pdf-mode');
+                document.body.classList.remove('pdf-mode');
+            });
+        }
+    </script>
+</body>
+
+</html>

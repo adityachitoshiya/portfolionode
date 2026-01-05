@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Aditya | Varaha Labs</title>
+    
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- GSAP for Floating Animation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <!-- Three.js for Hologram -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Space+Grotesk:wght@700&family=Inter:wght@400;600&display=swap');
+
+        :root {
+            --bg-color: #080808;
+            --accent: #ff0055;
+            --hologram: #00f3ff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.07'/%3E%3C/svg%3E");
+            /* Default cursor for mobile, custom for desktop via JS/Media Query */
+            cursor: auto;
+        }
+
+        .font-marker { font-family: 'Permanent Marker', cursive; }
+        .font-grotesk { font-family: 'Space Grotesk', sans-serif; }
+
+        /* Custom Cursor (Desktop Only) */
+        .cursor-dot, .cursor-outline {
+            position: fixed; top: 0; left: 0; transform: translate(-50%, -50%);
+            border-radius: 50%; z-index: 10001; pointer-events: none; display: none;
+        }
+        .cursor-dot { width: 8px; height: 8px; background-color: white; mix-blend-mode: difference; }
+        .cursor-outline { width: 40px; height: 40px; border: 1px solid rgba(255, 255, 255, 0.5); transition: width 0.2s, height 0.2s, background-color 0.2s; mix-blend-mode: difference; }
+        
+        @media (hover: hover) and (pointer: fine) {
+            .cursor-dot, .cursor-outline { display: block; }
+            body { cursor: none; }
+        }
+        
+        body.hovering .cursor-outline { width: 80px; height: 80px; background-color: rgba(255, 255, 255, 0.1); border-color: transparent; backdrop-filter: invert(1); }
+
+        /* Cursor Trail Canvas */
+        #trail-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            z-index: 1; opacity: 0.6;
+        }
+
+        /* --- 3D SCENE SETUP --- */
+        .scene {
+            perspective: 1000px;
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            overflow: hidden; /* Prevent spillover */
+        }
+
+        .layer {
+            position: absolute;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+            z-index: 10;
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center; /* Center content in layers */
+            pointer-events: none; /* Let clicks pass through */
+        }
+        
+        /* Allow interaction on specific children */
+        .layer > * { pointer-events: auto; }
+
+        /* --- HOLOGRAM CONTAINER --- */
+        #hologram-container {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; height: 100%; z-index: 0; opacity: 0.4;
+            pointer-events: none; mix-blend-mode: screen;
+        }
+        
+        .holo-scanline {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 243, 255, 0.05) 51%, transparent 52%);
+            background-size: 100% 4px; pointer-events: none; z-index: 1;
+        }
+
+        /* --- POLAROID CARD --- */
+        .polaroid-wrapper { 
+            position: relative; 
+            transform-style: preserve-3d; 
+            z-index: 20; 
+            transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); 
+        }
+
+        .polaroid {
+            background: #fff; 
+            padding: 12px 12px 70px 12px; 
+            width: 280px; 
+            transform: rotate(-3deg); 
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+            transition: transform 0.2s;
+        }
+
+        /* Responsive Polaroid Width */
+        @media (max-width: 768px) {
+            .polaroid { width: 240px; padding-bottom: 50px; }
+            .polaroid-img-container { height: 280px !important; }
+        }
+
+        .polaroid-img-container {
+            width: 100%;
+            height: 340px; 
+            background: black;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #ddd;
+        }
+
+        .polaroid img { 
+            width: 100%; height: 100%; 
+            object-fit: cover; object-position: center; 
+            filter: grayscale(100%) contrast(1.2); 
+            transition: filter 0.3s;
+        }
+        
+        .polaroid:hover img { filter: grayscale(0%) contrast(1.1); }
+
+        .tape {
+            position: absolute; top: -20px; left: 50%; transform: translateX(-50%) rotate(2deg);
+            width: 100px; height: 35px; background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(5px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 20;
+            transform: translateZ(20px) translateX(-50%) rotate(2deg);
+        }
+
+        /* --- TYPOGRAPHY --- */
+        .big-hi {
+            font-family: 'Space Grotesk', sans-serif; 
+            font-size: 12rem; 
+            line-height: 0.8;
+            font-weight: 900; 
+            color: #fff; 
+            text-shadow: 10px 10px 0px #000; 
+            z-index: 5; 
+            pointer-events: none;
+        }
+        
+        @media (max-width: 768px) {
+            .big-hi { font-size: 6rem; top: 10% !important; right: auto !important; left: 50% !important; transform: translateX(-50%) !important; opacity: 0.15; }
+        }
+
+        /* --- ANIMATIONS --- */
+        .float-anim { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        
+        .nav-back { position: fixed; top: 30px; left: 30px; z-index: 100; mix-blend-mode: difference; }
+        @media (max-width: 768px) { .nav-back { top: 20px; left: 20px; } }
+
+        .bottom-links {
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 50;
+            display: flex; gap: 20px; padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);
+            border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        @media (max-width: 768px) {
+            .bottom-links { width: 90%; justify-content: center; bottom: 20px; }
+            .bottom-copyright { display: none; } /* Hide copyright on mobile to save space */
+        }
+
+        /* --- MOBILE LAYOUT ADJUSTMENTS --- */
+        @media (max-width: 768px) {
+            .scene { flex-direction: column; padding-top: 80px; }
+            
+            /* Text Content repositioning for mobile */
+            .mobile-text-container {
+                position: relative !important;
+                top: auto !important;
+                right: auto !important;
+                transform: none !important;
+                width: 100% !important;
+                text-align: center !important;
+                margin-top: 2rem;
+                padding: 0 20px;
+                z-index: 30 !important;
+            }
+            
+            /* Hide large absolute text block on mobile, show cleaner version */
+            .desktop-text { display: none !important; }
+            
+            /* Adjust floating elements positions for mobile */
+            .mobile-sticker-1 { top: 15% !important; left: 5% !important; }
+            .mobile-sticker-2 { bottom: 15% !important; left: auto !important; right: 5% !important; }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-text { display: none !important; }
+        }
+    </style>
+</head>
+<body class="overflow-hidden md:overflow-hidden overflow-y-auto"> <!-- Enable scroll on mobile -->
+
+    <canvas id="trail-canvas"></canvas>
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+    
+    <a href="index.html" class="nav-back flex items-center gap-2 text-white hover:text-pink-500 transition-colors font-bold tracking-widest uppercase text-sm group cursor-pointer">
+        <i data-lucide="arrow-left" class="group-hover:-translate-x-1 transition-transform"></i> Return
+    </a>
+
+    <div class="scene" id="scene">
+        <!-- Hologram -->
+        <div class="layer" data-speed="0.02" style="z-index: 0;">
+            <div id="hologram-container"></div>
+            <div class="holo-scanline"></div>
+        </div>
+
+        <!-- Big Text -->
+        <div class="layer background-text" data-speed="0.04">
+            <h1 class="big-hi absolute top-10 right-20 opacity-10">HI!!</h1>
+        </div>
+
+        <!-- Content Layer -->
+        <div class="layer graphics w-full h-full" data-speed="0.05">
+            
+            <!-- Floating Sticker Top-Left -->
+            <div class="absolute top-20 left-20 float-anim mobile-sticker-1">
+                <i data-lucide="flame" class="w-16 h-16 text-white mb-2"></i>
+                <div class="font-marker text-2xl text-white transform -rotate-12">About Me</div>
+                <svg width="150" height="20" viewBox="0 0 150 20" class="stroke-pink-500 stroke-2 fill-none"><path d="M5,15 Q40,5 75,15 T145,5" /></svg>
+            </div>
+
+            <!-- Spinning Circle Bottom-Left -->
+            <div class="absolute bottom-20 left-20 mobile-sticker-2">
+                <div class="relative w-32 h-32 animate-[spin_15s_linear_infinite]">
+                    <svg viewBox="0 0 100 100" width="100%" height="100%">
+                        <defs><path id="circle" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"/></defs>
+                        <text font-size="11" fill="white" font-family="monospace" font-weight="bold"><textPath href="#circle">DESIGNER • DEVELOPER • CREATOR •</textPath></text>
+                    </svg>
+                    <i data-lucide="zap" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-pink-500"></i>
+                </div>
+            </div>
+
+            <!-- Intro Text (Desktop) -->
+            <div class="desktop-text absolute top-1/2 right-[10%] transform -translate-y-1/2 w-80 text-right z-20 pointer-events-none">
+                <h2 class="font-grotesk text-8xl font-black text-white leading-none mb-4" style="text-shadow: 0 0 20px black;">HI!!</h2>
+                <div class="bg-black/40 backdrop-blur-sm p-4 rounded-xl border border-white/5 inline-block text-left pointer-events-auto">
+                    <p class="font-sans text-gray-300 text-sm leading-relaxed mb-6">
+                        My name is <strong class="text-white">Aditya Chitoshiya</strong>.<br>
+                        I'm a multidisciplinary <span class="text-pink-500 font-bold">Design Engineer</span> blending code, art, and AI to build the impossible.
+                    </p>
+                    <div class="font-marker text-2xl text-white mb-2">Ever Since</div>
+                    <p class="text-xs text-gray-400">
+                        I remember, I've always had a special interest in visual communication. From simple sketches to complex AI systems.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero Polaroid (Vertical) -->
+        <div class="layer hero" data-speed="0.1">
+            <div class="polaroid-wrapper" id="polaroid-card">
+                <div class="polaroid">
+                    <div class="tape"></div>
+                    
+                    <!-- Vertical Image Container -->
+                    <div class="polaroid-img-container mb-4 relative group">
+                        <!-- Updated Local Image Source -->
+                        <img src="assets/dp.JPG?v=2" alt="Aditya" class="w-full h-full object-cover object-center">
+                        <div class="absolute inset-0 bg-pink-500/20 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </div>
+
+                    <div class="flex justify-between items-end absolute bottom-4 left-4 right-4">
+                        <div class="font-marker text-black text-xl transform -rotate-2">Aditya C.</div>
+                        <div class="font-mono text-gray-500 text-[10px] border border-black px-1 rounded transform rotate-3">IND-2025</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intro Text (Mobile Only - Flows below image) -->
+            <div class="mobile-text mobile-text-container bg-black/60 backdrop-blur-md p-6 rounded-2xl border border-white/10 mt-8 mb-24">
+                <h2 class="font-grotesk text-4xl font-black text-white mb-2">HI!! I'm Aditya.</h2>
+                <p class="font-sans text-gray-300 text-sm leading-relaxed mb-4">
+                    A multidisciplinary <span class="text-pink-500 font-bold">Design Engineer</span> blending code, art, and AI to build the impossible.
+                </p>
+                <div class="font-marker text-xl text-white mb-1">Ever Since</div>
+                <p class="text-xs text-gray-400">
+                    I remember, I've always had a special interest in visual communication. From simple sketches to complex AI systems.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Links -->
+    <div class="bottom-links">
+        <a href="mailto:adityachitoshiya12@gmail.com" class="text-xs text-white hover:text-pink-500 transition-colors cursor-pointer">Email</a>
+        <span class="text-gray-600">•</span>
+        <a href="https://linkedin.com/in/imadityakumar" target="_blank" class="text-xs text-white hover:text-blue-500 transition-colors cursor-pointer">LinkedIn</a>
+        <span class="text-gray-600">•</span>
+        <a href="https://varahalabs.studio" target="_blank" class="text-xs text-white hover:text-green-500 transition-colors cursor-pointer">Website</a>
+    </div>
+
+    <div class="fixed bottom-4 left-0 w-full text-center text-[10px] text-gray-700 font-mono pointer-events-none z-0 bottom-copyright">
+        &copy; 2025 Aditya Chitoshiya
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- TRAIL LOGIC ---
+        const trailCanvas = document.getElementById('trail-canvas');
+        const ctx = trailCanvas.getContext('2d');
+        let trailPoints = [];
+        const MAX_AGE = 7500;
+
+        function resizeCanvas() {
+            trailCanvas.width = window.innerWidth;
+            trailCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        window.addEventListener('mousemove', (e) => {
+            trailPoints.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+        });
+
+        // --- 3D HOLOGRAM & PARALLAX ---
+        const hologramContainer = document.getElementById('hologram-container');
+        if (hologramContainer) {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            hologramContainer.appendChild(renderer.domElement);
+
+            // Icosahedron
+            const geometry = new THREE.IcosahedronGeometry(3, 1);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x00f3ff, 
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3 
+            });
+            const hologram = new THREE.Mesh(geometry, material);
+            scene.add(hologram);
+            camera.position.z = 7;
+
+            // Mouse Tracking
+            const polaroid = document.getElementById('polaroid-card');
+
+            // Only add mouse interaction on Desktop (width > 768px)
+            if (window.matchMedia("(min-width: 768px)").matches) {
+                document.body.addEventListener('mousemove', (e) => {
+                    const x = (e.clientX / window.innerWidth - 0.5) * 2;
+                    const y = (e.clientY / window.innerHeight - 0.5) * 2;
+                    
+                    // 1. Move Background Layers
+                    document.querySelectorAll('.layer').forEach(layer => {
+                        const speed = layer.getAttribute('data-speed');
+                        const moveX = x * speed * 20; 
+                        const moveY = y * speed * 20;
+                        layer.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                    });
+                    
+                    // 2. Tilt & Move Polaroid Frame
+                    if(polaroid) {
+                        const translateX = x * 80; 
+                        const translateY = y * 80;
+                        const rotateX = -y * 30; 
+                        const rotateY = x * 30;
+                        
+                        polaroid.style.transform = `
+                            perspective(1000px) 
+                            rotateX(${rotateX}deg) 
+                            rotateY(${rotateY}deg) 
+                            translate3d(${translateX}px, ${translateY}px, 0)
+                            scale(1.1)
+                        `;
+                    }
+
+                    // Cursor
+                    const dot = document.querySelector('.cursor-dot');
+                    const outline = document.querySelector('.cursor-outline');
+                    if(dot) { dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px'; }
+                    if(outline) outline.animate({ left: e.clientX + 'px', top: e.clientY + 'px' }, { duration: 500, fill: 'forwards' });
+                });
+            }
+
+            // Animation Loop
+            const animate = function () {
+                requestAnimationFrame(animate);
+                
+                // Draw Trail
+                ctx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+                if (trailPoints.length > 1) {
+                    ctx.beginPath();
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    const now = Date.now();
+                    trailPoints = trailPoints.filter(p => now - p.time < MAX_AGE);
+
+                    for (let i = 0; i < trailPoints.length - 1; i++) {
+                        const p1 = trailPoints[i];
+                        const p2 = trailPoints[i+1];
+                        const age = now - p1.time;
+                        const opacity = 1 - (age / MAX_AGE);
+                        
+                        if(opacity > 0) {
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.lineWidth = 2; // Thin pen style
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                // Rotate Hologram
+                hologram.rotation.x += 0.002;
+                hologram.rotation.y += 0.002;
+                renderer.render(scene, camera);
+            };
+            animate();
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                resizeCanvas();
+            });
+        }
+
+        // GSAP Reveal
+        gsap.from(".polaroid", { y: 100, opacity: 0, rotation: -10, duration: 1.5, ease: "elastic.out(1, 0.5)" });
+        gsap.from(".big-hi", { opacity: 0, scale: 0.8, duration: 1.5, delay: 0.2 });
+        
+        // Add mobile reveal for text
+        if (window.innerWidth <= 768) {
+             gsap.from(".mobile-text", { y: 50, opacity: 0, duration: 1, delay: 0.5, ease: "power2.out" });
+        }
+
+        // Hover
+        document.querySelectorAll('a, .hover-trigger').forEach(el => {
+            el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+        });
+    </script>
+</body>
+</html>

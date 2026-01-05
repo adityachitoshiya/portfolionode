@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Work | Aditya Chitoshiya</title>
+
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3C/svg%3E">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* Hamburger Animation */
+        .hamburger-line {
+            transition: all 0.3s ease-in-out;
+            transform-origin: center;
+        }
+
+        button.active .hamburger-line:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        button.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+
+        button.active .hamburger-line:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Fira+Code:wght@400;600&display=swap');
+
+        :root {
+            --primary: #3b82f6;
+            --dark: #050505;
+            --text-main: #e2e8f0;
+            --font-main: 'Space Grotesk', sans-serif;
+            --font-display: 'Syne', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        .display-font {
+            font-family: var(--font-display);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        /* Glass Panels */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-5px);
+        }
+
+        /* Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        /* Filter Button Active State */
+        .filter-btn.active {
+            background-color: white;
+            color: black;
+            border-color: white;
+        }
+
+        /* --- CUSTOM CURSOR STYLES --- */
+        .cursor-dot,
+        .cursor-outline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 10001;
+            pointer-events: none;
+            display: none;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            mix-blend-mode: difference;
+        }
+
+        .cursor-outline {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            body {
+                cursor: none;
+            }
+
+            .cursor-dot,
+            .cursor-outline {
+                display: block;
+            }
+        }
+
+        body.hovering .cursor-outline {
+            width: 80px;
+            height: 80px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: transparent;
+            backdrop-filter: invert(1);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Custom Cursor Elements -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+
+    <!-- Navigation -->
+    <nav
+        class="fixed w-full z-50 top-0 left-0 px-6 pt-8 pb-4 md:py-6 text-white bg-black/50 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="index.html"
+                class="text-xl font-bold tracking-widest display-font hover-trigger flex items-center gap-2 cursor-none">
+                <i data-lucide="arrow-left" class="w-4 h-4 text-blue-500"></i> ADITYA<span
+                    class="text-blue-500">.</span>CC
+            </a>
+
+            <!-- Desktop Menu -->
+            <div class="hidden md:flex gap-8 text-xs font-medium tracking-wider uppercase">
+                <a href="index.html" class="hover:text-blue-400 transition-colors">Home</a>
+                <a href="work.html" class="text-blue-400 transition-colors">Work</a>
+                <a href="shop.html" class="hover:text-blue-400 transition-colors">Shop</a>
+                <a href="services.html" class="hover:text-blue-400 transition-colors">Services</a>
+                <a href="about.html" class="hover:text-blue-400 transition-colors">About</a>
+                <a href="contact.html" class="hover:text-blue-400 transition-colors">Contact</a>
+            </div>
+
+            <!-- Mobile Menu Button (Unified) -->
+            <button id="mobile-menu-btn"
+                class="md:hidden fixed top-8 right-6 z-[101] w-10 h-10 flex flex-col justify-center gap-[5px] p-2 hover:opacity-80 transition-opacity">
+                <span class="hamburger-line w-full h-[2px] bg-white rounded-full"></span>
+                <span class="hamburger-line w-full h-[2px] bg-white rounded-full"></span>
+                <span class="hamburger-line w-full h-[2px] bg-white rounded-full"></span>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Panel (Full Screen Overlay) -->
+        <div id="mobile-menu"
+            class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-2xl flex flex-col justify-start items-center opacity-0 transition-opacity duration-500 overflow-y-auto pt-32 pb-10">
+
+            <!-- Close Button REMOVED -->
+
+            <div class="flex flex-col gap-6 w-full max-w-md px-6 text-center">
+                <a href="index.html"
+                    class="mobile-link group flex items-center justify-center gap-3 text-xl md:text-4xl font-black uppercase tracking-widest text-white hover:text-blue-500 transition-colors">
+                    <span class="text-[10px] md:text-xs font-mono text-gray-600 group-hover:text-blue-400">01</span>
+                    HOME
+                </a>
+                <a href="work.html"
+                    class="mobile-link group flex items-center justify-center gap-3 text-xl md:text-4xl font-black uppercase tracking-widest text-white hover:text-blue-500 transition-colors">
+                    <span class="text-[10px] md:text-xs font-mono text-gray-600 group-hover:text-blue-400">02</span>
+                    WORK
+                </a>
+                <a href="shop.html"
+                    class="mobile-link group flex items-center justify-center gap-3 text-xl md:text-4xl font-black uppercase tracking-widest text-white hover:text-blue-500 transition-colors">
+                    <span class="text-[10px] md:text-xs font-mono text-gray-600 group-hover:text-blue-400">03</span>
+                    SHOP
+                </a>
+                <a href="services.html"
+                    class="mobile-link group flex items-center justify-center gap-3 text-xl md:text-4xl font-black uppercase tracking-widest text-white hover:text-blue-500 transition-colors">
+                    <span class="text-[10px] md:text-xs font-mono text-gray-600 group-hover:text-blue-400">04</span>
+                    SERVICES
+                </a>
+                <a href="about.html"
+                    class="mobile-link group flex items-center justify-center gap-3 text-xl md:text-4xl font-black uppercase tracking-widest text-white hover:text-blue-500 transition-colors">
+                    <span class="text-[10px] md:text-xs font-mono text-gray-600 group-hover:text-blue-400">05</span>
+                    ABOUT
+                </a>
+                <a href="contact.html"
+                    class="mobile-link group flex items-center justify-center gap-3 text-xl md:text-4xl font-black uppercase tracking-widest text-white hover:text-blue-500 transition-colors">
+                    <span class="text-[10px] md:text-xs font-mono text-gray-600 group-hover:text-blue-400">06</span>
+                    CONTACT
+                </a>
+            </div>
+
+            <div class="absolute bottom-12 flex flex-col items-center gap-4">
+                <div class="w-px h-12 bg-gradient-to-b from-transparent via-white/20 to-transparent"></div>
+                <p class="text-[10px] text-gray-500 tracking-[0.3em]">ADITYA.CC // SYSTEM</p>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="pt-40 pb-12 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-5xl md:text-8xl font-black text-white mb-8 reveal">SELECTED WORK</h1>
+
+            <!-- Filters -->
+            <div class="flex flex-wrap gap-4 reveal delay-100">
+                <button
+                    class="filter-btn active px-6 py-2 border border-white/20 rounded-full text-sm font-medium uppercase tracking-wider hover:bg-white hover:text-black transition-all"
+                    data-filter="all">All</button>
+                <button
+                    class="filter-btn px-6 py-2 border border-white/20 rounded-full text-sm font-medium uppercase tracking-wider hover:bg-white hover:text-black transition-all"
+                    data-filter="Branding">Branding</button>
+                <button
+                    class="filter-btn px-6 py-2 border border-white/20 rounded-full text-sm font-medium uppercase tracking-wider hover:bg-white hover:text-black transition-all"
+                    data-filter="UI/UX">UI/UX</button>
+                <button
+                    class="filter-btn px-6 py-2 border border-white/20 rounded-full text-sm font-medium uppercase tracking-wider hover:bg-white hover:text-black transition-all"
+                    data-filter="Motion">Motion</button>
+                <button
+                    class="filter-btn px-6 py-2 border border-white/20 rounded-full text-sm font-medium uppercase tracking-wider hover:bg-white hover:text-black transition-all"
+                    data-filter="AI">AI Systems</button>
+                <a href="work-3d-cgi.html"
+                    class="px-6 py-2 border border-blue-500/50 text-blue-400 rounded-full text-sm font-medium uppercase tracking-wider hover:bg-blue-500 hover:text-white transition-all flex items-center gap-2">
+                    <i data-lucide="box" class="w-4 h-4"></i> 3D & CGI
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Work Grid -->
+    <section class="pb-20 px-6">
+        <div id="work-grid" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Projects injected here -->
+        </div>
+
+        <!-- Behance CTA -->
+        <div class="mt-16 text-center reveal">
+            <p class="text-gray-400 mb-6 font-mono text-sm">Want to see more raw concepts & case studies?</p>
+            <a href="https://behance.net/adityachitosh" target="_blank"
+                class="inline-flex items-center gap-2 px-8 py-4 bg-[#0057ff] text-white rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-[#0057ff] transition-all shadow-[0_0_20px_rgba(0,87,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+                <i data-lucide="palette" class="w-5 h-5"></i> Check out my Behance
+            </a>
+        </div>
+    </section>
+
+    <footer class="bg-black py-12 border-t border-white/10 text-center">
+        <p class="text-gray-600 text-sm">© 2024 Aditya Chitoshiya. All Rights Reserved.</p>
+    </footer>
+
+    <script src="js/projects.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Mobile Menu Logic
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        let isMenuOpen = false;
+
+        const toggleMenu = () => {
+            isMenuOpen = !isMenuOpen;
+            if (isMenuOpen) {
+                mobileMenu.classList.remove('hidden');
+                mobileMenuBtn.classList.add('active'); // Animate Hamburger
+                gsap.to(mobileMenu, { opacity: 1, duration: 0.3 });
+                gsap.fromTo(".mobile-link",
+                    { y: 50, opacity: 0 },
+                    { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, delay: 0.1, ease: "power2.out" }
+                );
+            } else {
+                mobileMenuBtn.classList.remove('active'); // Revert Hamburger
+                gsap.to(mobileMenu, {
+                    opacity: 0, duration: 0.3, onComplete: () => {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            }
+        };
+
+        mobileMenuBtn.addEventListener('click', toggleMenu);
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (isMenuOpen) toggleMenu();
+            });
+        });
+
+        // Render Projects
+        const workGrid = document.getElementById('work-grid');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+
+        function renderProjects(filter = 'all') {
+            workGrid.innerHTML = '';
+
+            if (typeof portfolioData !== 'undefined') {
+                const filteredProjects = filter === 'all'
+                    ? portfolioData.projects
+                    : portfolioData.projects.filter(p => p.category.includes(filter));
+
+                filteredProjects.forEach((project, index) => {
+                    const html = `
+            <a href="project-details.html?id=${project.id}" class="glass-panel group block rounded-xl overflow-hidden reveal">
+                <div class="aspect-video relative overflow-hidden">
+                    <img src="${project.media.hero}" alt="${project.title}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/50 group-hover:bg-black/20 transition-colors duration-500"></div>
+                </div>
+                <div class="p-6">
+                    <span class="text-blue-500 text-xs font-mono uppercase tracking-widest mb-2 block">${project.category}</span>
+                    <h3 class="text-2xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">${project.title}</h3>
+                    <p class="text-gray-400 text-sm line-clamp-2">${project.description}</p>
+                </div>
+            </a>
+            `;
+                    workGrid.insertAdjacentHTML('beforeend', html);
+                });
+
+                // Re-trigger animations for new elements
+                ScrollTrigger.refresh();
+                animateReveal();
+            }
+        }
+
+        // Filter Logic
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderProjects(btn.dataset.filter);
+            });
+        });
+
+        // Initial Render
+        renderProjects();
+
+        // Animations
+        gsap.registerPlugin(ScrollTrigger);
+        function animateReveal() {
+            gsap.utils.toArray('.reveal').forEach(el => {
+                gsap.fromTo(el, { opacity: 0, y: 30 }, {
+                    opacity: 1, y: 0, duration: 1,
+                    scrollTrigger: { trigger: el, start: "top 95%" }
+                });
+            });
+        }
+        animateReveal();
+
+        // Custom Cursor
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorOutline = document.querySelector('.cursor-outline');
+        if (window.matchMedia("(hover: hover)").matches) {
+            window.addEventListener('mousemove', (e) => {
+                const posX = e.clientX; const posY = e.clientY;
+                cursorDot.style.left = `${posX}px`; cursorDot.style.top = `${posY}px`;
+                cursorOutline.animate({ left: `${posX}px`, top: `${posY}px` }, { duration: 500, fill: "forwards" });
+            });
+            document.querySelectorAll('a, button, .glass-panel, .filter-btn').forEach(el => {
+                el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+                el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+            });
+        }
+
+    </script>
+    <script src="js/three-bg.js"></script>
+</body>
+
+</html>
